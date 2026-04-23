@@ -1,0 +1,21 @@
+[project]
+name = "orbitrl"
+version = "0.1.0"
+description = "Learning to play OrbitXL with reinforcement learning."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "esper>=3.7",
+    "numpy>=2.4.4",
+    "pygame-ce>=2.5.7",
+]
+
+[project.scripts]
+orbitrl = "orbitrl.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
