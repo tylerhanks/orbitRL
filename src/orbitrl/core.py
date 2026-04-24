@@ -1,0 +1,71 @@
+import esper
+import pygame as pg
+import numpy as np
+from dataclasses import dataclass as component
+
+from orbitrl.config import CENTER_X, CENTER_Y, OUTER_RING_RADIUS, MIDDLE_RING_RADIUS, INNER_RING_RADIUS
+
+@component
+class Position:
+    x: float = CENTER_X
+    y: float = CENTER_Y
+
+@component
+class PolarPosition:
+    r: float = 0.0
+    theta: float = 0.0
+
+@component
+class PolarVelocity:
+    r_dot: float = 0.0
+    theta_dot: float = 0.0
+
+@component
+class Circle:
+    radius: float = 10.0
+    color: str = "black"
+
+@component
+class Layer1:
+    pass
+
+@component
+class Layer2:
+    pass
+
+@component
+class Score:
+    value: int = 0
+
+class MovementProcessor(esper.Processor):
+    def process(self, dt):
+        for ent, (polar_pos, polar_vel) in esper.get_components(PolarPosition, PolarVelocity):
+            polar_pos.r += polar_vel.r_dot * dt
+            polar_pos.theta += polar_vel.theta_dot * dt
+            polar_pos.theta = polar_pos.theta % (2 * np.pi)  # wrap theta to [0, 2pi]
+
+class PolarToCartesianProcessor(esper.Processor):
+    def process(self, dt):
+        for ent, (polar, pos) in esper.get_components(PolarPosition, Position):
+            pos.x = polar.r * np.cos(polar.theta) + CENTER_X
+            pos.y = polar.r * np.sin(polar.theta) + CENTER_Y
+
+class RenderProcessor(esper.Processor):
+    def __init__(self, screen: pg.Surface):
+        super().__init__()
+        self.screen = screen
+        self.font = pg.font.SysFont(None, 36)
+
+    def process(self, dt):
+        self.screen.lock()
+        pg.draw.circle(self.screen, pg.Color(82, 55, 115), (int(CENTER_X), int(CENTER_Y)), OUTER_RING_RADIUS)
+        pg.draw.circle(self.screen, pg.Color(116, 78, 163, a=10), (int(CENTER_X), int(CENTER_Y)), MIDDLE_RING_RADIUS)
+        pg.draw.circle(self.screen, pg.Color(148, 100, 209, a=10), (int(CENTER_X), int(CENTER_Y)), INNER_RING_RADIUS)
+        for ent, (layer1, pos, circle) in esper.get_components(Layer1, Position, Circle):
+            pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
+        for ent, (layer2, pos, circle) in esper.get_components(Layer2, Position, Circle):
+            pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
+        self.screen.unlock()
+        for ent, (score) in esper.get_component(Score):
+            score_text = self.font.render(f"Score: {score.value}", True, pg.Color("white"))
+            self.screen.blit(score_text, (10, 10))
