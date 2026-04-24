@@ -36,6 +36,7 @@ class Circle:
 @component
 class Player:
     alive: bool = True
+    zone: int = 0
 
 @component
 class Enemy:
@@ -49,8 +50,21 @@ class Layer1:
 class Layer2:
     pass
 
-#class ScoreProcessor(esper.Processor):
+@component
+class Score:
+    value: int = 0
 
+class ScoreProcessor(esper.Processor):
+    def __init__(self):
+        super().__init__()
+        self.score_tracker = 0.0
+
+    def process(self, dt):
+        for ent, (score, player) in esper.get_components(Score, Player):
+            self.score_tracker += player.zone * dt
+            if self.score_tracker >= 1.0:
+                score.value += 1
+                self.score_tracker = 0.0
 
 class GameOverProcessor(esper.Processor):
     def process(self, dt):
@@ -75,11 +89,14 @@ class PlayerZoneProcessor(esper.Processor):
     def process(self, dt):
         for ent, (player, polar_pos, polar_vel) in esper.get_components(Player, PolarPosition, PolarVelocity):
             if polar_pos.r < INNER_RING_RADIUS:
-                polar_vel.theta_dot = -4.0
+                polar_vel.theta_dot = -4.7
+                player.zone = 4
             elif polar_pos.r < MIDDLE_RING_RADIUS:
                 polar_vel.theta_dot = -3.3
+                player.zone = 2
             elif polar_pos.r < OUTER_RING_RADIUS:
-                polar_vel.theta_dot = -2.5
+                polar_vel.theta_dot = -2.0
+                player.zone = 1
             else:
                 player.alive = False
 
@@ -110,6 +127,7 @@ class RenderProcessor(esper.Processor):
     def __init__(self, screen: pg.Surface):
         super().__init__()
         self.screen = screen
+        self.font = pg.font.SysFont(None, 36)
 
     def process(self, dt):
         self.screen.lock()
@@ -121,6 +139,9 @@ class RenderProcessor(esper.Processor):
         for ent, (layer2, pos, circle) in esper.get_components(Layer2, Position, Circle):
             pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
         self.screen.unlock()
+        for ent, (score) in esper.get_component(Score):
+            score_text = self.font.render(f"Score: {score.value}", True, pg.Color("white"))
+            self.screen.blit(score_text, (10, 10))
 
 
 
@@ -171,6 +192,7 @@ def main() -> None:
     esper.add_component(player, Circle(radius=10.0, color="white"))
     esper.add_component(player, Player())
     esper.add_component(player, Layer2())
+    esper.add_component(player, Score())
 
     polar_to_cartesian = PolarToCartesianProcessor()
     movement = MovementProcessor()
@@ -181,6 +203,7 @@ def main() -> None:
     enemy_spawn = EnemySpawnProcessor()
     enemy_despawn = EnemyDespawnProcessor()
     player_zone = PlayerZoneProcessor()
+    score = ScoreProcessor()
     esper.add_processor(polar_to_cartesian)
     esper.add_processor(movement)
     esper.add_processor(collision)
@@ -188,6 +211,7 @@ def main() -> None:
     esper.add_processor(enemy_spawn)
     esper.add_processor(enemy_despawn)
     esper.add_processor(player_zone)
+    esper.add_processor(score)
     esper.add_processor(render, priority=1)
     esper.add_processor(input, priority=2)
 
