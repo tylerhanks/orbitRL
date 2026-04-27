@@ -7,7 +7,7 @@ from orbitrl.player import Player
 
 @component
 class Enemy:
-    pass
+    alive: bool = True
 
 class CollisionProcessor(esper.Processor):
     def process(self, dt):
@@ -19,6 +19,29 @@ class CollisionProcessor(esper.Processor):
                 if distance < player_circle.radius + enemy_circle.radius:
                     player.alive = False
 
+def spawn_enemy():
+    enemy = esper.create_entity()
+    esper.add_component(enemy, PolarPosition(r=400.0, theta=np.random.uniform(0, 2 * np.pi)))
+    esper.add_component(enemy, Position())
+    esper.add_component(enemy, Enemy())
+    esper.add_component(enemy, Layer1())
+
+    enemy_type = np.random.choice([1,2,3])
+    if enemy_type == 1:
+        enemy_color = "red"
+        enemy_radius = 30.0
+        enemy_speed = -40.0
+    elif enemy_type == 2:
+        enemy_color = "orange"
+        enemy_radius = 20.0
+        enemy_speed = -70.0
+    else:
+        enemy_color = "yellow"
+        enemy_radius = 10.0
+        enemy_speed = -150.0
+    esper.add_component(enemy, Circle(radius=enemy_radius, color=enemy_color))
+    esper.add_component(enemy, PolarVelocity(r_dot=enemy_speed, theta_dot = 0.0))
+
 class EnemySpawnProcessor(esper.Processor):
     def __init__(self):
         super().__init__()
@@ -28,16 +51,16 @@ class EnemySpawnProcessor(esper.Processor):
         self.spawn_timer += dt
         if self.spawn_timer >= 4.0:
             self.spawn_timer = 0.0
-            enemy = esper.create_entity()
-            esper.add_component(enemy, PolarPosition(r=400.0, theta=np.random.uniform(0, 2 * np.pi)))
-            esper.add_component(enemy, Position())
-            esper.add_component(enemy, Circle(radius=15.0, color="red"))
-            esper.add_component(enemy, Enemy())
-            esper.add_component(enemy, PolarVelocity(r_dot=-40.0, theta_dot = 0.0))
-            esper.add_component(enemy, Layer1())
+            spawn_enemy()
 
 class EnemyDespawnProcessor(esper.Processor):
     def process(self, dt):
         for ent, (enemy, polar_pos) in esper.get_components(Enemy, PolarPosition):
             if polar_pos.r < 0.0:
+                enemy.alive = False
+
+class DeadEnemyProcessor(esper.Processor):
+    def process(self, dt):
+        for ent, enemy in esper.get_component(Enemy):
+            if not enemy.alive:
                 esper.delete_entity(ent)

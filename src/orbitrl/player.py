@@ -2,27 +2,36 @@ import esper
 import pygame as pg
 from dataclasses import dataclass as component
 
-from orbitrl.core import Score, PolarPosition, PolarVelocity
+from orbitrl.core import Score, PolarPosition, PolarVelocity, Position, Circle, Layer2
 from orbitrl.config import INNER_RING_RADIUS, MIDDLE_RING_RADIUS, OUTER_RING_RADIUS
-
 
 @component
 class Player:
     alive: bool = True
     zone: int = 0
 
+def spawn_player():
+    player = esper.create_entity()
+    esper.add_component(player, PolarPosition(r = 200.0, theta = 0.0))
+    esper.add_component(player, PolarVelocity(r_dot = 0.0, theta_dot = -2.5))
+    esper.add_component(player, Position())
+    esper.add_component(player, Circle(radius=12.0, color="white"))
+    esper.add_component(player, Player())
+    esper.add_component(player, Layer2())
+    esper.add_component(player, Score())
+
 
 class PlayerZoneProcessor(esper.Processor):
     def process(self, dt):
         for ent, (player, polar_pos, polar_vel) in esper.get_components(Player, PolarPosition, PolarVelocity):
             if polar_pos.r < INNER_RING_RADIUS:
-                polar_vel.theta_dot = -4.7
+                polar_vel.theta_dot = -4.5
                 player.zone = 4
             elif polar_pos.r < MIDDLE_RING_RADIUS:
-                polar_vel.theta_dot = -3.3
+                polar_vel.theta_dot = -3.0
                 player.zone = 2
             elif polar_pos.r < OUTER_RING_RADIUS:
-                polar_vel.theta_dot = -2.0
+                polar_vel.theta_dot = -2.5
                 player.zone = 1
             else:
                 player.alive = False
@@ -50,10 +59,3 @@ class ScoreProcessor(esper.Processor):
                 self.score_tracker = 0.0
 
 
-class GameOverProcessor(esper.Processor):
-    def process(self, dt):
-        for ent, player in esper.get_component(Player):
-            if not player.alive:
-                print("Game Over!")
-                pg.quit()
-                exit()
