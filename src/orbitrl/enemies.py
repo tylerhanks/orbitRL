@@ -46,12 +46,17 @@ class EnemySpawnProcessor(esper.Processor):
     def __init__(self):
         super().__init__()
         self.spawn_timer = 0.0
+        self.spawn_interval = 4.0
+        self.num_spawns = 0
 
     def process(self, dt):
         self.spawn_timer += dt
-        if self.spawn_timer >= 4.0:
+        if self.spawn_timer >= self.spawn_interval:
             self.spawn_timer = 0.0
             spawn_enemy()
+            self.num_spawns += 1
+            if self.num_spawns % 10 == 0:
+                self.spawn_interval = max(0.5, self.spawn_interval - 0.5)
 
 class EnemyDespawnProcessor(esper.Processor):
     def process(self, dt):
