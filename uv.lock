@@ -80,6 +80,7 @@ dependencies = [
     { name = "esper" },
     { name = "numpy" },
     { name = "pygame-ce" },
+    { name = "pygame-gui" },
 ]
 
 [package.metadata]
@@ -87,6 +88,7 @@ requires-dist = [
     { name = "esper", specifier = ">=3.7" },
     { name = "numpy", specifier = ">=2.4.4" },
     { name = "pygame-ce", specifier = ">=2.5.7" },
+    { name = "pygame-gui", specifier = ">=0.6.14" },
 ]
 
 [[package]]
@@ -115,4 +117,25 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/9b/0e0996573a9dd4bb34874c10643224a72372818242e07486c9eb4a22eebb/pygame_ce-2.5.7-cp314-cp314-win32.whl", hash = "sha256:1b7e641af3aeac92bb7e4df1402d6802271f4bd09c747d2665f154ef9b07a4e6", size = 9968590, upload-time = "2026-03-02T09:26:38.517Z" },
     { url = "https://files.pythonhosted.org/packages/96/96/c94d0e508954093e37a77b03101a3cf51a242e02cc0ec726edcb117f8885/pygame_ce-2.5.7-cp314-cp314-win_amd64.whl", hash = "sha256:595f4257c15fed11cd816ae0bfabad3d99f8f04a000d7d164a22c0f9afd6cb65", size = 10581240, upload-time = "2026-03-02T09:26:41.139Z" },
     { url = "https://files.pythonhosted.org/packages/81/bb/93c5dadb66ac9733ca52952e063cce117a9312d6f97facd5dc4932f3d777/pygame_ce-2.5.7-cp314-cp314-win_arm64.whl", hash = "sha256:3e6ce74fd5a5f146f1bcf0224ae3e880c733917a9edbb53f790329d235520433", size = 11057480, upload-time = "2026-03-02T09:26:43.871Z" },
+]
+
+[[package]]
+name = "pygame-gui"
+version = "0.6.14"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pygame-ce" },
+    { name = "python-i18n" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/bf/d2589b06e39a6588480e6313ab530a6073a4ac6734d0f48a1883a5c46236/pygame_gui-0.6.14-py2.py3-none-any.whl", hash = "sha256:e351e88fab01756af6338d071c3cf6ce832a90c3b9f7db4fcb7b5216d5634482", size = 30896869, upload-time = "2025-05-30T18:25:53.938Z" },
+]
+
+[[package]]
+name = "python-i18n"
+version = "0.3.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/32/d9ba976458c9503ec22db4eb677a5d919edaecd73d893effeaa92a67b84b/python-i18n-0.3.9.tar.gz", hash = "sha256:df97f3d2364bf3a7ebfbd6cbefe8e45483468e52a9e30b909c6078f5f471e4e8", size = 11778, upload-time = "2020-08-26T14:31:27.512Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/73/9a0b2974dd9a3d50788d235f10c4d73c2efcd22926036309645fc2f0db0c/python_i18n-0.3.9-py3-none-any.whl", hash = "sha256:bda5b8d889ebd51973e22e53746417bd32783c9bd6780fd27cadbb733915651d", size = 13750, upload-time = "2020-08-26T14:31:26.266Z" },
 ]

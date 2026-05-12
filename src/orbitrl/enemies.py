@@ -16,13 +16,16 @@ class EnemyType:
 class CollisionProcessor(esper.Processor):
     def process(self, dt):
         for ent1, (player, player_pos, player_circle, score) in esper.get_components(Player, Position, Circle, Score):
-            for ent2, (enemy, enemy_pos, enemy_circle, enemy_type) in esper.get_components(Enemy, Position, Circle, EnemyType):
+            for ent2, (enemy, enemy_pos, enemy_circle) in esper.get_components(Enemy, Position, Circle):
                 dx = player_pos.x - enemy_pos.x
                 dy = player_pos.y - enemy_pos.y
                 distance = np.sqrt(dx * dx + dy * dy)
                 if distance < player_circle.radius + enemy_circle.radius:
                     player.alive = False
                 elif distance < player_circle.radius + enemy_circle.radius + 10.0:
+                    enemy_type = esper.try_component(ent2, EnemyType)
+                    if enemy_type is None:
+                        continue
                     if enemy_type.color == "red":
                         score.value += 5
                     elif enemy_type.color == "orange":
