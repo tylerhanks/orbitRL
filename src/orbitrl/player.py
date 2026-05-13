@@ -2,7 +2,7 @@ import esper
 import pygame as pg
 from dataclasses import dataclass as component
 
-from orbitrl.core import Score, PolarPosition, PolarVelocity, Position, Circle, Layer2
+from orbitrl.core import Score, PolarPosition, PolarVelocity, Position, Circle, Layer2, gameplay_paused
 from orbitrl.config import INNER_RING_RADIUS, MIDDLE_RING_RADIUS, OUTER_RING_RADIUS
 
 @component
@@ -23,6 +23,9 @@ def spawn_player():
 
 class PlayerZoneProcessor(esper.Processor):
     def process(self, dt):
+        if gameplay_paused():
+            return
+
         for ent, (player, polar_pos, polar_vel) in esper.get_components(Player, PolarPosition, PolarVelocity):
             if polar_pos.r < INNER_RING_RADIUS:
                 polar_vel.theta_dot = -4.5
@@ -38,6 +41,9 @@ class PlayerZoneProcessor(esper.Processor):
 
 class InputProcessor(esper.Processor):
     def process(self, dt):
+        if gameplay_paused():
+            return
+
         keys = pg.key.get_pressed()
         for ent, (player, polar_vel) in esper.get_components(Player, PolarVelocity):
             if keys[pg.K_SPACE]:
@@ -52,10 +58,13 @@ class ScoreProcessor(esper.Processor):
         self.score_tracker = 0.0
 
     def process(self, dt):
+        if gameplay_paused():
+            return
+
         for ent, (score, player) in esper.get_components(Score, Player):
+            if not player.alive:
+                continue
             self.score_tracker += player.zone * dt
             if self.score_tracker >= 1.0:
                 score.value += 1
                 self.score_tracker = 0.0
-
-
