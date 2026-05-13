@@ -5,6 +5,7 @@ import pygame as pg
 import pygame_gui as gui
 
 from orbitrl.config import SCREEN_HEIGHT, SCREEN_WIDTH
+from orbitrl.highscores import load_highscores
 from orbitrl.scenes import (
     FrameEvents,
     GAME_WORLD,
@@ -101,20 +102,31 @@ def setup_main_menu(screen: pg.Surface) -> None:
 
 def setup_highscores_menu(screen: pg.Surface) -> None:
     manager = gui.UIManager((SCREEN_WIDTH, SCREEN_HEIGHT))
-    title_rect = pg.Rect((0, 150), (SCREEN_WIDTH, 52))
-    message_rect = pg.Rect((SCREEN_WIDTH // 2 - 180, 230), (360, 48))
-    back_rect = pg.Rect((SCREEN_WIDTH // 2 - 100, 326), (200, 52))
+    title_rect = pg.Rect((0, 70), (SCREEN_WIDTH, 52))
+    back_rect = pg.Rect((SCREEN_WIDTH // 2 - 100, 500), (200, 52))
 
     gui.elements.UILabel(
         relative_rect=title_rect,
         text="Highscores",
         manager=manager,
     )
-    gui.elements.UILabel(
-        relative_rect=message_rect,
-        text="Coming soon",
-        manager=manager,
-    )
+
+    highscores = load_highscores()
+    if highscores:
+        for index, highscore in enumerate(highscores, start=1):
+            row_rect = pg.Rect((SCREEN_WIDTH // 2 - 180, 130 + index * 32), (360, 30))
+            gui.elements.UILabel(
+                relative_rect=row_rect,
+                text=f"{index}. {highscore.name} - {highscore.score}",
+                manager=manager,
+            )
+    else:
+        gui.elements.UILabel(
+            relative_rect=pg.Rect((SCREEN_WIDTH // 2 - 180, 220), (360, 48)),
+            text="No highscores yet",
+            manager=manager,
+        )
+
     back_button = gui.elements.UIButton(
         relative_rect=back_rect,
         text="Back",

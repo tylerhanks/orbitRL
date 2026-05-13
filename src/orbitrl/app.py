@@ -16,12 +16,23 @@ from orbitrl.setup import setup_game
 
 
 def setup_game_world(screen: pg.Surface) -> None:
-    if GAME_WORLD in esper.list_worlds() and esper.current_world != GAME_WORLD:
+    if GAME_WORLD in esper.list_worlds():
+        if esper.current_world == GAME_WORLD:
+            switch_world(MAIN_MENU_WORLD)
         esper.delete_world(GAME_WORLD)
 
     switch_world(GAME_WORLD)
-    esper.clear_database()
     setup_game(screen)
+
+
+def setup_highscores_world(screen: pg.Surface) -> None:
+    if HIGHSCORES_WORLD in esper.list_worlds():
+        if esper.current_world == HIGHSCORES_WORLD:
+            switch_world(MAIN_MENU_WORLD)
+        esper.delete_world(HIGHSCORES_WORLD)
+
+    switch_world(HIGHSCORES_WORLD)
+    setup_highscores_menu(screen)
 
 
 def setup_worlds(screen: pg.Surface) -> None:
@@ -29,9 +40,7 @@ def setup_worlds(screen: pg.Surface) -> None:
     esper.clear_database()
     setup_main_menu(screen)
 
-    switch_world(HIGHSCORES_WORLD)
-    esper.clear_database()
-    setup_highscores_menu(screen)
+    setup_highscores_world(screen)
 
     switch_world(MAIN_MENU_WORLD)
 
@@ -47,11 +56,17 @@ def main() -> None:
 
     while running:
         events = pg.event.get()
+        return_to_menu = False
         for event in events:
             if event.type == pg.QUIT:
                 running = False
+            elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+                return_to_menu = esper.current_world != MAIN_MENU_WORLD
 
         screen.fill(pg.Color(55, 30, 87, a=255))
+
+        if return_to_menu:
+            switch_world(MAIN_MENU_WORLD)
 
         set_frame_events(events)
         esper.process(dt)
@@ -59,6 +74,8 @@ def main() -> None:
         target_world = consume_world_switch_request()
         if target_world == GAME_WORLD:
             setup_game_world(screen)
+        elif target_world == HIGHSCORES_WORLD:
+            setup_highscores_world(screen)
         elif target_world:
             switch_world(target_world)
 

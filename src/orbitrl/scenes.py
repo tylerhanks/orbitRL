@@ -25,8 +25,11 @@ def switch_world(target_world: str) -> None:
 
 
 def set_frame_events(events: list[pg.event.Event]) -> None:
-    for _ent, frame_events in esper.get_component(FrameEvents):
+    existing_frame_events = esper.get_component(FrameEvents)
+    for _ent, frame_events in existing_frame_events:
         frame_events.events = events
+
+    if existing_frame_events:
         return
 
     event_entity = esper.create_entity()
