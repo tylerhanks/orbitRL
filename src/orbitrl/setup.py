@@ -40,7 +40,7 @@ def setup_entities():
     black_hole = esper.create_entity()
     esper.add_component(black_hole, PolarPosition(r=0.0, theta=0.0))
     esper.add_component(black_hole, Position())
-    esper.add_component(black_hole, Circle(radius=50.0, color="black"))
+    esper.add_component(black_hole, Circle(radius=50.0, color=pg.Color("black")))
     esper.add_component(black_hole, Enemy())
     esper.add_component(black_hole, Layer2())
 

@@ -1,5 +1,6 @@
 import esper
 import numpy as np
+import pygame as pg
 from dataclasses import dataclass as component
 
 from orbitrl.core import Position, Circle, PolarPosition, PolarVelocity, Layer1, Score, gameplay_paused
@@ -16,6 +17,10 @@ class EnemyType:
 @component
 class NearMissAwarded:
     pass
+
+_COLOR_RED = pg.Color("red")
+_COLOR_ORANGE = pg.Color("orange")
+_COLOR_YELLOW = pg.Color("yellow")
 
 class CollisionProcessor(esper.Processor):
     def process(self, dt):
@@ -52,28 +57,32 @@ class CollisionProcessor(esper.Processor):
                     esper.add_component(ent2, NearMissAwarded())
 
 def spawn_enemy():
-    enemy = esper.create_entity()
-    esper.add_component(enemy, PolarPosition(r=400.0, theta=np.random.uniform(0, 2 * np.pi)))
-    esper.add_component(enemy, Position())
-    esper.add_component(enemy, Enemy())
-    esper.add_component(enemy, Layer1())
-
-    enemy_type = np.random.choice([1,2,3])
+    enemy_type = np.random.choice([1, 2, 3])
     if enemy_type == 1:
-        enemy_color = "red"
+        enemy_color_name = "red"
+        enemy_color = _COLOR_RED
         enemy_radius = 30.0
         enemy_speed = -40.0
     elif enemy_type == 2:
-        enemy_color = "orange"
+        enemy_color_name = "orange"
+        enemy_color = _COLOR_ORANGE
         enemy_radius = 20.0
         enemy_speed = -70.0
     else:
-        enemy_color = "yellow"
+        enemy_color_name = "yellow"
+        enemy_color = _COLOR_YELLOW
         enemy_radius = 10.0
         enemy_speed = -150.0
-    esper.add_component(enemy, Circle(radius=enemy_radius, color=enemy_color))
-    esper.add_component(enemy, PolarVelocity(r_dot=enemy_speed, theta_dot = 0.0))
-    esper.add_component(enemy, EnemyType(color = enemy_color))
+
+    esper.create_entity(
+        PolarPosition(r=400.0, theta=np.random.uniform(0, 2 * np.pi)),
+        Position(),
+        Enemy(),
+        Layer1(),
+        Circle(radius=enemy_radius, color=enemy_color),
+        PolarVelocity(r_dot=enemy_speed, theta_dot=0.0),
+        EnemyType(color=enemy_color_name),
+    )
 
 class EnemySpawnProcessor(esper.Processor):
     def __init__(self):
