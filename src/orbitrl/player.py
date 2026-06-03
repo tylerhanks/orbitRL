@@ -15,7 +15,7 @@ def spawn_player():
     esper.add_component(player, PolarPosition(r = 200.0, theta = 0.0))
     esper.add_component(player, PolarVelocity(r_dot = 0.0, theta_dot = -2.5))
     esper.add_component(player, Position())
-    esper.add_component(player, Circle(radius=12.0, color="white"))
+    esper.add_component(player, Circle(radius=12.0, color=pg.Color("white")))
     esper.add_component(player, Player())
     esper.add_component(player, Layer2())
     esper.add_component(player, Score())

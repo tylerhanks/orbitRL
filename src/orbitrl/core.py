@@ -1,7 +1,7 @@
 import esper
 import pygame as pg
 import numpy as np
-from dataclasses import dataclass as component
+from dataclasses import dataclass as component, field
 
 from orbitrl.config import CENTER_X, CENTER_Y, OUTER_RING_RADIUS, MIDDLE_RING_RADIUS, INNER_RING_RADIUS
 
@@ -23,7 +23,7 @@ class PolarVelocity:
 @component
 class Circle:
     radius: float = 10.0
-    color: str = "black"
+    color: pg.Color = field(default_factory=lambda: pg.Color("black"))
 
 @component
 class Layer1:
@@ -71,6 +71,7 @@ class RenderProcessor(esper.Processor):
         self.background = pg.Surface(screen.get_size(), pg.SRCALPHA)
         self.score_value = None
         self.score_text = None
+        self._white = pg.Color("white")
 
         pg.draw.circle(self.background, pg.Color(82, 55, 115), (int(CENTER_X), int(CENTER_Y)), OUTER_RING_RADIUS)
         pg.draw.circle(self.background, pg.Color(116, 78, 163, a=10), (int(CENTER_X), int(CENTER_Y)), MIDDLE_RING_RADIUS)
@@ -89,7 +90,7 @@ class RenderProcessor(esper.Processor):
         for ent, (score) in esper.get_component(Score):
             if score.value != self.score_value:
                 self.score_value = score.value
-                self.score_text = self.font.render(f"Score: {score.value}", True, pg.Color("white"))
+                self.score_text = self.font.render(f"Score: {score.value}", True, self._white)
 
             if self.score_text is not None:
                 self.screen.blit(self.score_text, (10, 10))
