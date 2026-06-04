@@ -1,6 +1,6 @@
 import random
+from collections.abc import Callable
 from dataclasses import dataclass as component
-from typing import Callable
 
 import esper
 import numpy as np
@@ -17,7 +17,6 @@ from orbitrl.core import (
 )
 from orbitrl.enemies import Enemy, EnemySpawnProcessor
 from orbitrl.player import Player, ScoreTracker
-
 
 Observation = None
 Policy = Callable[[Observation], bool]
@@ -68,7 +67,7 @@ class AIActionProcessor(esper.Processor):
         if gameplay_paused():
             return
 
-        for ent, (agent, player, polar_vel) in esper.get_components(AIAgent, Player, PolarVelocity):
+        for _ent, (agent, player, polar_vel) in esper.get_components(AIAgent, Player, PolarVelocity):
             if not player.alive or agent.policy is None:
                 continue
             if agent.policy(None):
@@ -115,7 +114,7 @@ def reset_rl_world(
         esper.delete_entity(ent, immediate=True)
 
     spawner = esper.get_processor(EnemySpawnProcessor)
-    if spawner is not None:
+    if isinstance(spawner, EnemySpawnProcessor):
         spawner.reset()
 
     spawn_ai_agents(agent_count, policy_factory)

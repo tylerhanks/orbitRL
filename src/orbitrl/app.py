@@ -1,8 +1,7 @@
-import pygame as pg
 import esper
+import pygame as pg
 
-
-from orbitrl.config import SCREEN_WIDTH, SCREEN_HEIGHT
+from orbitrl.config import SCREEN_HEIGHT, SCREEN_WIDTH
 from orbitrl.menu import setup_highscores_menu, setup_main_menu
 from orbitrl.scenes import (
     GAME_WORLD,

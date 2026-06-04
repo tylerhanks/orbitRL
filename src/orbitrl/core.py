@@ -1,9 +1,12 @@
-import esper
-import pygame as pg
-import numpy as np
-from dataclasses import dataclass as component, field
+from dataclasses import dataclass as component
+from dataclasses import field
 
-from orbitrl.config import CENTER_X, CENTER_Y, OUTER_RING_RADIUS, MIDDLE_RING_RADIUS, INNER_RING_RADIUS
+import esper
+import numpy as np
+import pygame as pg
+
+from orbitrl.config import CENTER_X, CENTER_Y, INNER_RING_RADIUS, MIDDLE_RING_RADIUS, OUTER_RING_RADIUS
+
 
 @component
 class Position:
@@ -49,7 +52,7 @@ class MovementProcessor(esper.Processor):
         if gameplay_paused():
             return
 
-        for ent, (polar_pos, polar_vel) in esper.get_components(PolarPosition, PolarVelocity):
+        for _ent, (polar_pos, polar_vel) in esper.get_components(PolarPosition, PolarVelocity):
             polar_pos.r += polar_vel.r_dot * dt
             polar_pos.theta += polar_vel.theta_dot * dt
             polar_pos.theta = polar_pos.theta % (2 * np.pi)  # wrap theta to [0, 2pi]
@@ -59,7 +62,7 @@ class PolarToCartesianProcessor(esper.Processor):
         if gameplay_paused():
             return
 
-        for ent, (polar, pos) in esper.get_components(PolarPosition, Position):
+        for _ent, (polar, pos) in esper.get_components(PolarPosition, Position):
             pos.x = polar.r * np.cos(polar.theta) + CENTER_X
             pos.y = polar.r * np.sin(polar.theta) + CENTER_Y
 
@@ -74,22 +77,23 @@ class RenderProcessor(esper.Processor):
         self.score_text = None
         self._white = pg.Color("white")
 
-        pg.draw.circle(self.background, pg.Color(82, 55, 115), (int(CENTER_X), int(CENTER_Y)), OUTER_RING_RADIUS)
-        pg.draw.circle(self.background, pg.Color(116, 78, 163, a=10), (int(CENTER_X), int(CENTER_Y)), MIDDLE_RING_RADIUS)
-        pg.draw.circle(self.background, pg.Color(148, 100, 209, a=10), (int(CENTER_X), int(CENTER_Y)), INNER_RING_RADIUS)
+        center = (int(CENTER_X), int(CENTER_Y))
+        pg.draw.circle(self.background, pg.Color(82, 55, 115), center, OUTER_RING_RADIUS)
+        pg.draw.circle(self.background, pg.Color(116, 78, 163, a=10), center, MIDDLE_RING_RADIUS)
+        pg.draw.circle(self.background, pg.Color(148, 100, 209, a=10), center, INNER_RING_RADIUS)
 
     def process(self, dt):
         self.screen.blit(self.background, (0, 0))
 
         self.screen.lock()
-        for ent, (layer1, pos, circle) in esper.get_components(Layer1, Position, Circle):
+        for _ent, (_layer1, pos, circle) in esper.get_components(Layer1, Position, Circle):
             pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
-        for ent, (layer2, pos, circle) in esper.get_components(Layer2, Position, Circle):
+        for _ent, (_layer2, pos, circle) in esper.get_components(Layer2, Position, Circle):
             pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
         self.screen.unlock()
 
         if self.show_score:
-            for ent, (score) in esper.get_component(Score):
+            for _ent, score in esper.get_component(Score):
                 if score.value != self.score_value:
                     self.score_value = score.value
                     self.score_text = self.font.render(f"Score: {score.value}", True, self._white)

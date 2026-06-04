@@ -2,8 +2,8 @@ import esper
 import pygame as pg
 
 from orbitrl.ai import (
-    AIActionProcessor,
     DEFAULT_AGENT_COUNT,
+    AIActionProcessor,
     RLEpisodeProcessor,
     RLHudProcessor,
     spawn_ai_agents,

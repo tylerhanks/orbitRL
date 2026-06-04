@@ -1,10 +1,13 @@
+from dataclasses import dataclass as component
+from dataclasses import field
+
 import esper
 import numpy as np
 import pygame as pg
-from dataclasses import dataclass as component, field
 
-from orbitrl.core import Position, Circle, PolarPosition, PolarVelocity, Layer1, Score, gameplay_paused
+from orbitrl.core import Circle, Layer1, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
 from orbitrl.player import Player
+
 
 @component
 class Enemy:
@@ -27,11 +30,13 @@ class CollisionProcessor(esper.Processor):
         if gameplay_paused():
             return
 
-        for ent1, (player, player_pos, player_circle, score, polar_vel) in esper.get_components(Player, Position, Circle, Score, PolarVelocity):
+        for ent1, (player, player_pos, player_circle, score, polar_vel) in esper.get_components(  # type: ignore[call-overload]
+            Player, Position, Circle, Score, PolarVelocity
+        ):
             if not player.alive:
                 continue
 
-            for ent2, (enemy, enemy_pos, enemy_circle) in esper.get_components(Enemy, Position, Circle):
+            for ent2, (_enemy, enemy_pos, enemy_circle) in esper.get_components(Enemy, Position, Circle):
                 dx = player_pos.x - enemy_pos.x
                 dy = player_pos.y - enemy_pos.y
                 distance_squared = dx * dx + dy * dy
@@ -120,7 +125,7 @@ class EnemyDespawnProcessor(esper.Processor):
         if gameplay_paused():
             return
 
-        for ent, (enemy, polar_pos) in esper.get_components(Enemy, PolarPosition):
+        for _ent, (enemy, polar_pos) in esper.get_components(Enemy, PolarPosition):
             if polar_pos.r < 0.0:
                 enemy.alive = False
 

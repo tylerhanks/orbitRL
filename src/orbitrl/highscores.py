@@ -2,7 +2,6 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-
 MAX_HIGHSCORES = 10
 HIGHSCORES_FILE = Path(__file__).resolve().parents[2] / "highscores.json"
 

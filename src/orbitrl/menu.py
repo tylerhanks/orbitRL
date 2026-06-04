@@ -7,11 +7,11 @@ import pygame_gui as gui
 from orbitrl.config import SCREEN_HEIGHT, SCREEN_WIDTH
 from orbitrl.highscores import load_highscores
 from orbitrl.scenes import (
-    FrameEvents,
     GAME_WORLD,
     HIGHSCORES_WORLD,
     MAIN_MENU_WORLD,
     RL_WORLD,
+    FrameEvents,
     WorldSwitchRequest,
     request_world_switch,
 )
