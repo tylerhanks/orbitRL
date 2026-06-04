@@ -6,26 +6,14 @@ import pygame_gui as gui
 
 from orbitrl.config import SCREEN_HEIGHT, SCREEN_WIDTH
 from orbitrl.core import (
-    Circle,
     GameplayPaused,
-    Layer2,
-    MovementProcessor,
-    PolarPosition,
-    PolarToCartesianProcessor,
-    Position,
     RenderProcessor,
     Score,
 )
-from orbitrl.enemies import (
-    CollisionProcessor,
-    DeadEnemyProcessor,
-    Enemy,
-    EnemyDespawnProcessor,
-    EnemySpawnProcessor,
-)
 from orbitrl.highscores import is_highscore, save_highscore
-from orbitrl.player import InputProcessor, Player, PlayerZoneProcessor, ScoreProcessor, spawn_player
+from orbitrl.player import InputProcessor, Player, spawn_player
 from orbitrl.scenes import GAME_WORLD, FrameEvents, request_world_switch
+from orbitrl.simulation import setup_simulation_processors, spawn_black_hole
 
 
 @component
@@ -36,26 +24,12 @@ class HighscorePrompt:
     save_button: gui.elements.UIButton
 
 def setup_entities():
-    # spawn the black hole
-    black_hole = esper.create_entity()
-    esper.add_component(black_hole, PolarPosition(r=0.0, theta=0.0))
-    esper.add_component(black_hole, Position())
-    esper.add_component(black_hole, Circle(radius=50.0, color=pg.Color("black")))
-    esper.add_component(black_hole, Enemy())
-    esper.add_component(black_hole, Layer2())
-
+    spawn_black_hole()
     spawn_player()
 
 def setup_processors(screen):
-    esper.add_processor(PolarToCartesianProcessor())
-    esper.add_processor(MovementProcessor())
-    esper.add_processor(CollisionProcessor())
+    setup_simulation_processors()
     esper.add_processor(GameOverProcessor(screen))
-    esper.add_processor(EnemySpawnProcessor())
-    esper.add_processor(EnemyDespawnProcessor())
-    esper.add_processor(DeadEnemyProcessor())
-    esper.add_processor(PlayerZoneProcessor())
-    esper.add_processor(ScoreProcessor())
     esper.add_processor(RenderProcessor(screen), priority=1)
     esper.add_processor(InputProcessor(), priority=2)
 
