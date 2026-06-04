@@ -68,8 +68,9 @@ class CollisionProcessor(esper.Processor):
                     else:
                         awarded.awarded.add(ent1)
 
-def spawn_enemy():
-    enemy_type = np.random.choice([1, 2, 3])
+def spawn_enemy(rng=None):
+    source = rng if rng is not None else np.random
+    enemy_type = source.choice([1, 2, 3])
     if enemy_type == 1:
         enemy_color_name = "red"
         enemy_color = _COLOR_RED
@@ -87,7 +88,7 @@ def spawn_enemy():
         enemy_speed = -150.0
 
     esper.create_entity(
-        PolarPosition(r=400.0, theta=np.random.uniform(0, 2 * np.pi)),
+        PolarPosition(r=400.0, theta=source.uniform(0, 2 * np.pi)),
         Position(),
         Enemy(),
         Layer1(),
@@ -97,8 +98,9 @@ def spawn_enemy():
     )
 
 class EnemySpawnProcessor(esper.Processor):
-    def __init__(self):
+    def __init__(self, rng=None):
         super().__init__()
+        self.rng = rng
         self.spawn_timer = 0.0
         self.spawn_interval = 4.0
         self.num_spawns = 0
@@ -115,7 +117,7 @@ class EnemySpawnProcessor(esper.Processor):
         self.spawn_timer += dt
         if self.spawn_timer >= self.spawn_interval:
             self.spawn_timer = 0.0
-            spawn_enemy()
+            spawn_enemy(self.rng)
             self.num_spawns += 1
             if self.num_spawns % 10 == 0:
                 self.spawn_interval = max(0.5, self.spawn_interval - 0.5)

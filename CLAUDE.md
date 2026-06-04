@@ -187,7 +187,20 @@ Notes about the `esper` library specifically — verify against `.venv/lib/pytho
 
 ### Testing
 
-No test framework is currently configured. Add pytest configuration to `pyproject.toml` if needed. Consider mocking the pygame and esper libraries for unit tests.
+Tests use **pytest** (dev dependency, `[tool.pytest.ini_options] testpaths = ["tests"]`). Run with:
+
+```bash
+uv run pytest          # full suite
+uv run pytest -q tests/test_environment.py   # OrbitSim only (runs without a display)
+```
+
+Conventions in `tests/`:
+
+- **Headless**: `tests/conftest.py` sets `SDL_VIDEODRIVER=dummy` / `SDL_AUDIODRIVER=dummy` at import (before pygame loads), so the suite runs without a window. Tests use **real** pygame/esper, not mocks.
+- **esper isolation**: an autouse `clean_esper` fixture resets the global singleton between tests (switch to `"default"`, delete other worlds, `clear_database`). Pass explicit `world=` names to `OrbitSim`; concurrent sims sharing a name alias the same world.
+- **`screen` fixture**: a session-scoped dummy-driver display surface for tests that render or build GUI (`test_rl_lab.py`, `test_worlds.py`). Pure `OrbitSim` tests don't request it and never touch a display.
+- **Assertion style**: structural invariants (determinism via two same-seed sims, dead-agent masking, `reward == score delta`, `reset` restoring `living == N`) plus one **trajectory fingerprint** canary in `test_environment.py` (`FINGERPRINT`) that catches silent dynamics drift — re-bless that constant only when you intentionally change the simulation's physics/scoring.
+- `test_worlds.py::test_game_world_processor_order` pins the game world's processor order (spine contiguous, `GameOver` last) as a regression guard for the simulation-spine extraction.
 
 ### Linting
 
@@ -212,4 +225,18 @@ Run `uv run ruff check src/orbitrl` after edits; use `--fix` to auto-apply the s
 ### Difficulty Scaling
 
 Difficulty increases automatically: every 10 enemy spawns, the spawn interval decreases by 0.5 seconds (min 0.5s). To adjust, modify the interval calculation in `EnemySpawnProcessor.process()` in `/src/orbitrl/enemies.py`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues at `github.com/tylerhanks/orbitRL`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
