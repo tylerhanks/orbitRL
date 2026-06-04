@@ -25,7 +25,7 @@ from orbitrl.enemies import (
 )
 from orbitrl.highscores import is_highscore, save_highscore
 from orbitrl.player import InputProcessor, Player, PlayerZoneProcessor, ScoreProcessor, spawn_player
-from orbitrl.scenes import FrameEvents, GAME_WORLD, request_world_switch
+from orbitrl.scenes import GAME_WORLD, FrameEvents, request_world_switch
 
 
 @component
@@ -74,7 +74,7 @@ class GameOverProcessor(esper.Processor):
             self.process_highscore_prompt(dt)
             return
 
-        for ent, (player, score) in esper.get_components(Player, Score):
+        for _ent, (player, score) in esper.get_components(Player, Score):
             if not player.alive:
                 if is_highscore(score.value):
                     self.open_highscore_prompt(score.value)

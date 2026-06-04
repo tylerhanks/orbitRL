@@ -1,5 +1,9 @@
 [
   {
+    "name": "Madison",
+    "score": 130
+  },
+  {
     "name": "420BlazeitXX",
     "score": 88
   },
@@ -12,11 +16,27 @@
     "score": 83
   },
   {
+    "name": "Madison",
+    "score": 81
+  },
+  {
+    "name": "Player",
+    "score": 66
+  },
+  {
     "name": "Tyler",
     "score": 49
   },
   {
+    "name": "Player",
+    "score": 47
+  },
+  {
     "name": "Tyler",
     "score": 45
+  },
+  {
+    "name": "Player",
+    "score": 33
   }
 ]

@@ -7,10 +7,11 @@ import pygame_gui as gui
 from orbitrl.config import SCREEN_HEIGHT, SCREEN_WIDTH
 from orbitrl.highscores import load_highscores
 from orbitrl.scenes import (
-    FrameEvents,
     GAME_WORLD,
     HIGHSCORES_WORLD,
     MAIN_MENU_WORLD,
+    RL_WORLD,
+    FrameEvents,
     WorldSwitchRequest,
     request_world_switch,
 )
@@ -21,6 +22,7 @@ class MainMenu:
     manager: gui.UIManager
     play_button: gui.elements.UIButton
     highscores_button: gui.elements.UIButton
+    rl_button: gui.elements.UIButton
 
 
 @component
@@ -43,6 +45,8 @@ class MainMenuProcessor(esper.Processor):
                         request_world_switch(GAME_WORLD)
                     elif event.ui_element == menu.highscores_button:
                         request_world_switch(HIGHSCORES_WORLD)
+                    elif event.ui_element == menu.rl_button:
+                        request_world_switch(RL_WORLD)
 
             menu.manager.update(dt)
             menu.manager.draw_ui(self.screen)
@@ -69,6 +73,7 @@ def setup_main_menu(screen: pg.Surface) -> None:
     title_rect = pg.Rect((0, 120), (SCREEN_WIDTH, 64))
     play_rect = pg.Rect((SCREEN_WIDTH // 2 - 120, 250), (240, 56))
     highscores_rect = pg.Rect((SCREEN_WIDTH // 2 - 120, 326), (240, 56))
+    rl_rect = pg.Rect((SCREEN_WIDTH // 2 - 120, 402), (240, 56))
 
     gui.elements.UILabel(
         relative_rect=title_rect,
@@ -85,6 +90,11 @@ def setup_main_menu(screen: pg.Surface) -> None:
         text="Highscores",
         manager=manager,
     )
+    rl_button = gui.elements.UIButton(
+        relative_rect=rl_rect,
+        text="RL Lab",
+        manager=manager,
+    )
 
     menu_entity = esper.create_entity()
     esper.add_component(
@@ -93,6 +103,7 @@ def setup_main_menu(screen: pg.Surface) -> None:
             manager=manager,
             play_button=play_button,
             highscores_button=highscores_button,
+            rl_button=rl_button,
         ),
     )
     esper.add_component(menu_entity, FrameEvents())
