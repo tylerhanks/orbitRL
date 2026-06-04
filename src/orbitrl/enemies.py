@@ -1,7 +1,7 @@
 import esper
 import numpy as np
 import pygame as pg
-from dataclasses import dataclass as component
+from dataclasses import dataclass as component, field
 
 from orbitrl.core import Position, Circle, PolarPosition, PolarVelocity, Layer1, Score, gameplay_paused
 from orbitrl.player import Player
@@ -16,7 +16,7 @@ class EnemyType:
 
 @component
 class NearMissAwarded:
-    pass
+    awarded: set[int] = field(default_factory=set)
 
 _COLOR_RED = pg.Color("red")
 _COLOR_ORANGE = pg.Color("orange")
@@ -27,7 +27,7 @@ class CollisionProcessor(esper.Processor):
         if gameplay_paused():
             return
 
-        for ent1, (player, player_pos, player_circle, score) in esper.get_components(Player, Position, Circle, Score):
+        for ent1, (player, player_pos, player_circle, score, polar_vel) in esper.get_components(Player, Position, Circle, Score, PolarVelocity):
             if not player.alive:
                 continue
 
@@ -40,8 +40,11 @@ class CollisionProcessor(esper.Processor):
 
                 if distance_squared < collision_radius * collision_radius:
                     player.alive = False
+                    polar_vel.r_dot = 0.0
+                    polar_vel.theta_dot = 0.0
                 elif distance_squared < near_miss_radius * near_miss_radius:
-                    if esper.has_component(ent2, NearMissAwarded):
+                    awarded = esper.try_component(ent2, NearMissAwarded)
+                    if awarded is not None and ent1 in awarded.awarded:
                         continue
 
                     enemy_type = esper.try_component(ent2, EnemyType)
@@ -54,7 +57,11 @@ class CollisionProcessor(esper.Processor):
                         score.value += 10
                     elif enemy_type.color == "yellow":
                         score.value += 20
-                    esper.add_component(ent2, NearMissAwarded())
+
+                    if awarded is None:
+                        esper.add_component(ent2, NearMissAwarded({ent1}))
+                    else:
+                        awarded.awarded.add(ent1)
 
 def spawn_enemy():
     enemy_type = np.random.choice([1, 2, 3])
@@ -87,6 +94,11 @@ def spawn_enemy():
 class EnemySpawnProcessor(esper.Processor):
     def __init__(self):
         super().__init__()
+        self.spawn_timer = 0.0
+        self.spawn_interval = 4.0
+        self.num_spawns = 0
+
+    def reset(self):
         self.spawn_timer = 0.0
         self.spawn_interval = 4.0
         self.num_spawns = 0

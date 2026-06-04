@@ -64,9 +64,10 @@ class PolarToCartesianProcessor(esper.Processor):
             pos.y = polar.r * np.sin(polar.theta) + CENTER_Y
 
 class RenderProcessor(esper.Processor):
-    def __init__(self, screen: pg.Surface):
+    def __init__(self, screen: pg.Surface, show_score: bool = True):
         super().__init__()
         self.screen = screen
+        self.show_score = show_score
         self.font = pg.font.SysFont(None, 36)
         self.background = pg.Surface(screen.get_size(), pg.SRCALPHA)
         self.score_value = None
@@ -87,10 +88,11 @@ class RenderProcessor(esper.Processor):
             pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
         self.screen.unlock()
 
-        for ent, (score) in esper.get_component(Score):
-            if score.value != self.score_value:
-                self.score_value = score.value
-                self.score_text = self.font.render(f"Score: {score.value}", True, self._white)
+        if self.show_score:
+            for ent, (score) in esper.get_component(Score):
+                if score.value != self.score_value:
+                    self.score_value = score.value
+                    self.score_text = self.font.render(f"Score: {score.value}", True, self._white)
 
-            if self.score_text is not None:
-                self.screen.blit(self.score_text, (10, 10))
+                if self.score_text is not None:
+                    self.screen.blit(self.score_text, (10, 10))

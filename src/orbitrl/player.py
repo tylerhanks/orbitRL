@@ -10,6 +10,10 @@ class Player:
     alive: bool = True
     zone: int = 0
 
+@component
+class ScoreTracker:
+    progress: float = 0.0
+
 def spawn_player():
     player = esper.create_entity()
     esper.add_component(player, PolarPosition(r = 200.0, theta = 0.0))
@@ -19,6 +23,7 @@ def spawn_player():
     esper.add_component(player, Player())
     esper.add_component(player, Layer2())
     esper.add_component(player, Score())
+    esper.add_component(player, ScoreTracker())
 
 
 class PlayerZoneProcessor(esper.Processor):
@@ -27,6 +32,8 @@ class PlayerZoneProcessor(esper.Processor):
             return
 
         for ent, (player, polar_pos, polar_vel) in esper.get_components(Player, PolarPosition, PolarVelocity):
+            if not player.alive:
+                continue
             if polar_pos.r < INNER_RING_RADIUS:
                 polar_vel.theta_dot = -4.5
                 player.zone = 4
@@ -38,6 +45,8 @@ class PlayerZoneProcessor(esper.Processor):
                 player.zone = 1
             else:
                 player.alive = False
+                polar_vel.r_dot = 0.0
+                polar_vel.theta_dot = 0.0
 
 class InputProcessor(esper.Processor):
     def process(self, dt):
@@ -53,18 +62,14 @@ class InputProcessor(esper.Processor):
 
 
 class ScoreProcessor(esper.Processor):
-    def __init__(self):
-        super().__init__()
-        self.score_tracker = 0.0
-
     def process(self, dt):
         if gameplay_paused():
             return
 
-        for ent, (score, player) in esper.get_components(Score, Player):
+        for ent, (score, tracker, player) in esper.get_components(Score, ScoreTracker, Player):
             if not player.alive:
                 continue
-            self.score_tracker += player.zone * dt
-            if self.score_tracker >= 1.0:
+            tracker.progress += player.zone * dt
+            if tracker.progress >= 1.0:
                 score.value += 1
-                self.score_tracker = 0.0
+                tracker.progress = 0.0

@@ -8,11 +8,13 @@ from orbitrl.scenes import (
     GAME_WORLD,
     HIGHSCORES_WORLD,
     MAIN_MENU_WORLD,
+    RL_WORLD,
     consume_world_switch_request,
     set_frame_events,
     switch_world,
 )
 from orbitrl.setup import setup_game
+from orbitrl.setup_rl import setup_rl
 
 
 def setup_game_world(screen: pg.Surface) -> None:
@@ -33,6 +35,16 @@ def setup_highscores_world(screen: pg.Surface) -> None:
 
     switch_world(HIGHSCORES_WORLD)
     setup_highscores_menu(screen)
+
+
+def setup_rl_world(screen: pg.Surface) -> None:
+    if RL_WORLD in esper.list_worlds():
+        if esper.current_world == RL_WORLD:
+            switch_world(MAIN_MENU_WORLD)
+        esper.delete_world(RL_WORLD)
+
+    switch_world(RL_WORLD)
+    setup_rl(screen)
 
 
 def setup_worlds(screen: pg.Surface) -> None:
@@ -76,6 +88,8 @@ def main() -> None:
             setup_game_world(screen)
         elif target_world == HIGHSCORES_WORLD:
             setup_highscores_world(screen)
+        elif target_world == RL_WORLD:
+            setup_rl_world(screen)
         elif target_world:
             switch_world(target_world)
 

@@ -7,6 +7,7 @@ import pygame as pg
 MAIN_MENU_WORLD = "main_menu"
 GAME_WORLD = "game"
 HIGHSCORES_WORLD = "highscores"
+RL_WORLD = "rl"
 
 
 @dataclass
