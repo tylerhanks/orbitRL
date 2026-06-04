@@ -213,3 +213,17 @@ Run `uv run ruff check src/orbitrl` after edits; use `--fix` to auto-apply the s
 
 Difficulty increases automatically: every 10 enemy spawns, the spawn interval decreases by 0.5 seconds (min 0.5s). To adjust, modify the interval calculation in `EnemySpawnProcessor.process()` in `/src/orbitrl/enemies.py`.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues at `github.com/tylerhanks/orbitRL`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
