@@ -28,11 +28,11 @@ def spawn_black_hole() -> None:
     esper.add_component(black_hole, Layer2())
 
 
-def setup_simulation_processors() -> None:
+def setup_simulation_processors(rng=None) -> None:
     esper.add_processor(PolarToCartesianProcessor())
     esper.add_processor(MovementProcessor())
     esper.add_processor(CollisionProcessor())
-    esper.add_processor(EnemySpawnProcessor())
+    esper.add_processor(EnemySpawnProcessor(rng))
     esper.add_processor(EnemyDespawnProcessor())
     esper.add_processor(DeadEnemyProcessor())
     esper.add_processor(PlayerZoneProcessor())
