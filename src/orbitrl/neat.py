@@ -60,7 +60,7 @@ class NEATLab:
 
     def _neat_policy(self, genome: neat.DefaultGenome, config: neat.Config) -> Policy:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        return lambda obs: net.activate(flatten(obs, 3))[0] > 0.5
+        return lambda obs: net.activate(flatten(obs, 5))[0] > 0.5
 
     def tick(self, surface: pg.Surface) -> None:
         actions = [

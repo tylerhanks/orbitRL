@@ -150,9 +150,7 @@ class OrbitSim:
 
     # -- stepping ----------------------------------------------------------
 
-    def step(
-        self, actions: list[bool]
-    ) -> tuple[list[Observation | None], list[float], list[bool], bool]:
+    def step(self, actions: list[bool]) -> tuple[list[Observation | None], list[float], list[bool], bool]:
         self._enter()
 
         self._apply(actions)
@@ -239,15 +237,25 @@ def flatten(obs: Observation | None, k: int) -> np.ndarray:
     if obs is None:
         return np.zeros(width, dtype=np.float32)
 
-    own = np.array(
-        [obs.r, obs.theta, obs.r_dot, float(obs.zone), float(obs.alive)], dtype=np.float32
-    )
+    own = np.array([obs.r, obs.theta, obs.r_dot, float(obs.zone), float(obs.alive)], dtype=np.float32)
 
     def distance(e: EnemyObs) -> float:
-        return float(abs(e.r - obs.r) + abs(e.theta - obs.theta))
+        # dr = abs(e.r - obs.r)
+        # How far the player must travel before its theta reaches the enemy's theta.
+        # theta_dot is always negative, so the player moves toward decreasing theta.
+        # ahead ∈ [0, 2π): near-zero = just ahead, near-2π = just behind.
+        ahead = (obs.theta - e.theta) % (2.0 * np.pi)
+        # Enemies behind (ahead > π) are penalized with a +2π offset so any forward
+        # enemy is always ranked closer than any behind enemy in the angular component.
+        angular_dist = ahead if ahead <= np.pi else ahead + 2.0 * np.pi
+        # return float(dr + angular_dist)
+        return angular_dist
 
     nearest = sorted(obs.enemies, key=distance)[:k]
     enemy_feats = np.zeros(4 * k, dtype=np.float32)
     for i, e in enumerate(nearest):
-        enemy_feats[4 * i : 4 * i + 4] = (e.r, e.theta, e.radius, e.speed)
+        ahead = (obs.theta - e.theta) % (2.0 * np.pi)
+        angular_dist = ahead if ahead <= np.pi else ahead + 2.0 * np.pi
+        dr = abs(e.r - obs.r)
+        enemy_feats[4 * i : 4 * i + 4] = (angular_dist, dr, e.radius, e.speed)
     return np.concatenate([own, enemy_feats])
