@@ -75,7 +75,7 @@ class CollisionProcessor(esper.Processor):
 
 def spawn_enemy(rng=None):
     source = rng if rng is not None else np.random
-    enemy_type = source.choice([1, 2, 3])
+    enemy_type = source.choice([1, 2, 3], p=[0.25, 0.50, 0.25])
     # enemy_type = 2  # for now just spawn standard orange enemies.
     if enemy_type == 1:
         enemy_color_name = "red"
