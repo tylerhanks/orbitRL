@@ -1,7 +1,7 @@
 import hashlib
 import random
 
-from orbitrl.environment import EnemyObs, Observation, OrbitSim, flatten
+from orbitrl.environment import CAMP_WINDOW_TICKS, EnemyObs, Observation, OrbitSim, flatten
 
 N = 5
 
@@ -132,6 +132,33 @@ def test_trajectory_fingerprint_canary():
         _obs, _r, _d, _a = sim.step(acts)
         digest.update(repr(sim.scores).encode())
     assert digest.hexdigest() == FINGERPRINT
+
+
+def _hold_around_spawn(sim: OrbitSim) -> bool:
+    """Drive a bang-bang policy that holds near the r=200 spawn radius (a tight oscillation =
+    camping) for one window-plus, returning whether the episode ended."""
+    obs = sim.reset()
+    for _ in range(CAMP_WINDOW_TICKS + 10):
+        acts = [(o.r < 200.0) if o is not None else False for o in obs]
+        obs, _r, _d, all_done = sim.step(acts)
+        if all_done:
+            return True
+    return False
+
+
+def test_camp_timeout_kills_and_penalizes_stationary_agent():
+    sim = OrbitSim(1, seed=11, world="camp_on", camp_timeout=True)
+    assert _hold_around_spawn(sim), "stationary agent should have been timed out within a window"
+    # Negative score is the unambiguous camping signal: only CAMP_PENALTY can drive Score
+    # below zero (collision/ring deaths merely stop accrual).
+    assert sim.scores[0] < 0
+
+
+def test_camp_timeout_is_opt_in():
+    # Same bang-bang camper, but with the default-off flag: no kill, no penalty.
+    sim = OrbitSim(1, seed=11, world="camp_off")
+    _hold_around_spawn(sim)
+    assert sim.scores[0] >= 0
 
 
 # Blessed at implementation time; changes only when the simulation dynamics change.

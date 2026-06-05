@@ -1,14 +1,41 @@
 import random
-from itertools import count
+from typing import Any, Protocol, cast
 
 import neat
-import numpy as np
 import pygame as pg
 from neat.math_util import mean
 from neat.reporting import ReporterSet
-from pygame import surface
 
 from orbitrl.environment import DEFAULT_AGENT_COUNT, OrbitSim, Policy, flatten
+
+
+class NeatConfig(Protocol):
+    """The subset of ``neat.Config``'s surface that NEATLab reads.
+
+    neat-python sets the ``[NEAT]``-section parameters (pop_size, fitness_criterion, ...)
+    via ``setattr`` from a parameter list (see ``neat/config.py``), so they are invisible
+    to static analysis on ``neat.Config`` itself. Declaring them here lets us type the
+    config precisely after a single ``cast``. The opaque ``*_type`` / ``*_config`` handles
+    are passed straight back into neat's own (untyped) calls, so ``Any`` is honest there.
+    """
+
+    # Dynamically-set [NEAT]-section parameters.
+    pop_size: int
+    fitness_criterion: str
+    fitness_threshold: float
+    reset_on_extinction: bool
+    no_fitness_termination: bool
+    seed: int | None
+
+    # Opaque component types/configs, forwarded into neat's own (untyped) calls.
+    genome_type: Any
+    genome_config: Any
+    reproduction_type: Any
+    reproduction_config: Any
+    species_set_type: Any
+    species_set_config: Any
+    stagnation_type: Any
+    stagnation_config: Any
 
 
 class NEATLab:
@@ -20,7 +47,11 @@ class NEATLab:
     """
 
     def __init__(self, surface: pg.Surface, config: neat.Config, n: int = DEFAULT_AGENT_COUNT, seed: int | None = None):
-        self.sim = OrbitSim(n, seed=seed)
+        # neat.Config sets its [NEAT]-section params dynamically; view it through the
+        # NeatConfig protocol so those attributes are statically known from here on.
+        cfg: NeatConfig = cast(NeatConfig, config)
+
+        self.sim = OrbitSim(n, seed=seed, camp_timeout=True)
         self.obs = self.sim.reset()
         self.nn_inputs = [flatten(self.obs[i], 5) for i in range(n)]
         self.font = pg.font.SysFont(None, 28)
@@ -28,37 +59,37 @@ class NEATLab:
 
         # Handle random seed for reproducibility
         # Seed parameter takes precedence over config seed
-        if seed is None and hasattr(config, "seed"):
-            seed = config.seed
+        if seed is None:
+            seed = cfg.seed
 
         if seed is not None:
             random.seed(seed)
 
         self.reporters = ReporterSet()
-        self.config = config
-        stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
-        self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
-        if config.fitness_criterion == "max":
+        self.config = cfg
+        stagnation = cfg.stagnation_type(cfg.stagnation_config, self.reporters)
+        self.reproduction = cfg.reproduction_type(cfg.reproduction_config, self.reporters, stagnation)
+        if cfg.fitness_criterion == "max":
             self.fitness_criterion = max
-        elif config.fitness_criterion == "min":
+        elif cfg.fitness_criterion == "min":
             self.fitness_criterion = min
-        elif config.fitness_criterion == "mean":
+        elif cfg.fitness_criterion == "mean":
             self.fitness_criterion = mean
-        elif not config.no_fitness_termination:
-            raise RuntimeError(f"Unexpected fitness_criterion: {config.fitness_criterion!r}")
+        elif not cfg.no_fitness_termination:
+            raise RuntimeError(f"Unexpected fitness_criterion: {cfg.fitness_criterion!r}")
 
         # Create a population from scratch, then partition into species.
         # The reproduction.create_new method will set up the innovation tracker
-        self.population = self.reproduction.create_new(config.genome_type, config.genome_config, config.pop_size)
-        self.species = config.species_set_type(config.species_set_config, self.reporters)
+        self.population = self.reproduction.create_new(cfg.genome_type, cfg.genome_config, cfg.pop_size)
+        self.species = cfg.species_set_type(cfg.species_set_config, self.reporters)
         self.generation = 0
-        self.species.speciate(config, self.population, self.generation)
+        self.species.speciate(cfg, self.population, self.generation)
 
-        self.best_genome = None
+        self.best_genome: neat.DefaultGenome | None = None
 
-        self.policies: list[Policy] = [self._neat_policy(genome, config) for genome in self.population.values()]
+        self.policies: list[Policy] = [self._neat_policy(genome, cfg) for genome in self.population.values()]
 
-    def _neat_policy(self, genome: neat.DefaultGenome, config: neat.Config) -> Policy:
+    def _neat_policy(self, genome: neat.DefaultGenome, config: NeatConfig) -> Policy:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         return lambda obs: net.activate(flatten(obs, 5))[0] > 0.5
 
@@ -66,7 +97,7 @@ class NEATLab:
         actions = [
             policy(obs) if obs is not None else False for policy, obs in zip(self.policies, self.obs, strict=True)
         ]
-        self.obs, rewards, dones, all_done = self.sim.step(actions)
+        self.obs, _rewards, _dones, all_done = self.sim.step(actions)
 
         if all_done:
             print(f"[generation {self.generation}] scores: {self.sim.scores}")
@@ -81,6 +112,7 @@ class NEATLab:
                 # if best is None or self.config.is_better_fitness(g.fitness, best.fitness):
                 if best is None or g.fitness > best.fitness:
                     best = g
+            assert best is not None  # the population is non-empty, so the loop set best
             self.reporters.post_evaluate(self.config, self.population, self.species, best)
 
             # Track the best genome ever seen.

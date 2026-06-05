@@ -1,3 +1,4 @@
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -36,6 +37,14 @@ AGENT_PALETTE: list[pg.Color] = [
 # Control semantics, mirroring InputProcessor: hold = push outward, release = fall inward.
 HOLD_R_DOT = 200.0
 RELEASE_R_DOT = -100.0
+
+# Anti-camping timeout (opt-in via OrbitSim(camp_timeout=True)). The action space is binary
+# (hold/release), so a "stationary" agent is really bang-bang oscillating in a tight radial
+# band -- we detect it as a small max-min spread of r over a sliding window. A real dodger
+# sweeps across zones and never trips this. Tune these after watching a few generations.
+CAMP_WINDOW_TICKS = 300  # ~5 s at dt = 1/60
+CAMP_BAND = 20.0  # max-min of r (units) below this over a full window = camping
+CAMP_PENALTY = 50  # score subtracted at camping-death
 
 
 @dataclass
@@ -80,12 +89,15 @@ class OrbitSim:
         dt: float = 1.0 / 60.0,
         seed: int | None = None,
         world: str = RL_WORLD,
+        camp_timeout: bool = False,
     ) -> None:
         self.n = n_agents
         self.dt = dt
         self.world = world
+        self.camp_timeout = camp_timeout
         self.rng = np.random.default_rng(seed)
         self._agents: list[int] = []
+        self._camp_windows: list[deque[float]] = []
         self._prev_scores: list[int] = [0] * n_agents
         self._renderer: RenderProcessor | None = None
         self._build()
@@ -125,6 +137,7 @@ class OrbitSim:
                 ScoreTracker(),
             )
             self._agents.append(ent)
+        self._camp_windows = [deque(maxlen=CAMP_WINDOW_TICKS) for _ in self._agents]
         self._prev_scores = [0] * self.n
 
     def reset(self, seed: int | None = None) -> list[Observation | None]:
@@ -155,6 +168,8 @@ class OrbitSim:
 
         self._apply(actions)
         esper.process(self.dt)
+        if self.camp_timeout:
+            self._check_camping()
 
         obs = self._observe()
         scores = self._scores()
@@ -171,6 +186,21 @@ class OrbitSim:
                 continue
             polar_vel = esper.component_for_entity(ent, PolarVelocity)
             polar_vel.r_dot = HOLD_R_DOT if action else RELEASE_R_DOT
+
+    def _check_camping(self) -> None:
+        # Kill any living agent whose radius has stayed inside CAMP_BAND for a full window,
+        # mirroring collision/ring death (alive=False, velocity zeroed) plus a score penalty.
+        for ent, window in zip(self._agents, self._camp_windows, strict=True):
+            player = esper.component_for_entity(ent, Player)
+            if not player.alive:
+                continue
+            window.append(esper.component_for_entity(ent, PolarPosition).r)
+            if len(window) == window.maxlen and (max(window) - min(window)) < CAMP_BAND:
+                player.alive = False
+                pv = esper.component_for_entity(ent, PolarVelocity)
+                pv.r_dot = 0.0
+                pv.theta_dot = 0.0
+                esper.component_for_entity(ent, Score).value -= CAMP_PENALTY
 
     # -- observation -------------------------------------------------------
 
