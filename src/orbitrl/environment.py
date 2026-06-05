@@ -250,6 +250,13 @@ class OrbitSim:
         self._enter()
         return sum(1 for ent in self._agents if esper.component_for_entity(ent, Player).alive)
 
+    def set_agent_color(self, i: int, color: pg.Color) -> None:
+        """Recolor agent i. Generic presentation hook: the Environment carries no notion of
+        why an agent has a given color (species, team, ...) -- that is a caller concern.
+        """
+        self._enter()
+        esper.component_for_entity(self._agents[i], Circle).color = color
+
     def render(self, surface: pg.Surface) -> None:
         self._enter()
         if self._renderer is None:

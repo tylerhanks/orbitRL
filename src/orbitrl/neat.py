@@ -8,6 +8,25 @@ from neat.reporting import ReporterSet
 
 from orbitrl.environment import DEFAULT_AGENT_COUNT, OrbitSim, Policy, flatten
 
+# Stable per-species colors: neat-python hands out monotonically increasing species ids and never
+# reuses them, so a deterministic id->hue map lets a lineage keep its color across generations.
+# The golden-ratio conjugate spreads successive ids around the hue wheel with maximal separation.
+_GOLDEN_RATIO_CONJUGATE = 0.61803398875
+
+
+def _species_color(species_id: int) -> pg.Color:
+    c = pg.Color(0)
+    c.hsva = ((species_id * _GOLDEN_RATIO_CONJUGATE % 1.0) * 360.0, 65.0, 95.0, 100.0)
+    return c
+
+
+def _dim(color: pg.Color) -> pg.Color:
+    """A faded variant of a species color, for dead agents -- same hue, muted saturation/value."""
+    h, s, v, _a = color.hsva
+    d = pg.Color(0)
+    d.hsva = (h, s * 0.4, v * 0.3, 100.0)
+    return d
+
 
 class NeatConfig(Protocol):
     """The subset of ``neat.Config``'s surface that NEATLab reads.
@@ -89,6 +108,26 @@ class NEATLab:
 
         self.policies: list[Policy] = [self._neat_policy(genome, cfg) for genome in self.population.values()]
 
+        # Per-agent full species color for the current generation, and whether each has been
+        # dimmed (on death) since the last recolor.
+        self._base_colors: list[pg.Color] = []
+        self._dimmed: list[bool] = []
+        self._recolor()
+
+    def _recolor(self) -> None:
+        """Repaint every agent to its species color and reset dim tracking for a fresh generation.
+
+        Agent i maps positionally to the i-th genome in the population (the same enumeration used
+        to assign fitness), so this stays in lockstep with the policies list.
+        """
+        genomes = list(self.population.values())
+        self._base_colors = []
+        self._dimmed = [False] * len(genomes)
+        for i, genome in enumerate(genomes):
+            color = _species_color(self.species.genome_to_species[genome.key])
+            self._base_colors.append(color)
+            self.sim.set_agent_color(i, color)
+
     def _neat_policy(self, genome: neat.DefaultGenome, config: NeatConfig) -> Policy:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         return lambda obs: net.activate(flatten(obs, 5))[0] > 0.5
@@ -97,7 +136,13 @@ class NEATLab:
         actions = [
             policy(obs) if obs is not None else False for policy, obs in zip(self.policies, self.obs, strict=True)
         ]
-        self.obs, _rewards, _dones, all_done = self.sim.step(actions)
+        self.obs, _rewards, dones, all_done = self.sim.step(actions)
+
+        # Fade agents that died this tick so the living species stand out.
+        for i, done in enumerate(dones):
+            if done and not self._dimmed[i]:
+                self.sim.set_agent_color(i, _dim(self._base_colors[i]))
+                self._dimmed[i] = True
 
         if all_done:
             print(f"[generation {self.generation}] scores: {self.sim.scores}")
@@ -154,6 +199,7 @@ class NEATLab:
 
             self.obs = self.sim.reset()
             self.policies = [self._neat_policy(genome, self.config) for genome in self.population.values()]
+            self._recolor()
 
         self.sim.render(surface)
         self._draw_hud(surface)

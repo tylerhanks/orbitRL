@@ -1,7 +1,12 @@
 import hashlib
 import random
 
+import esper
+import pygame as pg
+
+from orbitrl.core import Circle
 from orbitrl.environment import CAMP_WINDOW_TICKS, EnemyObs, Observation, OrbitSim, flatten
+from orbitrl.neat import _species_color
 
 N = 5
 
@@ -159,6 +164,20 @@ def test_camp_timeout_is_opt_in():
     sim = OrbitSim(1, seed=11, world="camp_off")
     _hold_around_spawn(sim)
     assert sim.scores[0] >= 0
+
+
+def test_set_agent_color_mutates_circle():
+    sim = OrbitSim(N, seed=0, world="recolor")
+    sim.reset()
+    red = pg.Color("red")
+    sim.set_agent_color(2, red)
+    assert esper.component_for_entity(sim._agents[2], Circle).color == red
+
+
+def test_species_color_is_deterministic_and_distinct():
+    # Same id -> same color (stable lineage); different ids -> different colors.
+    assert _species_color(7) == _species_color(7)
+    assert _species_color(1) != _species_color(2)
 
 
 # Blessed at implementation time; changes only when the simulation dynamics change.
