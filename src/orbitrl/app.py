@@ -1,10 +1,12 @@
+from typing import cast
+
 import esper
 import neat
 import pygame as pg
 
 from orbitrl.config import SCREEN_HEIGHT, SCREEN_WIDTH
 from orbitrl.menu import setup_highscores_menu, setup_main_menu
-from orbitrl.neat import NEATLab
+from orbitrl.neat import NeatConfig, NEATLab
 from orbitrl.scenes import (
     GAME_WORLD,
     HIGHSCORES_WORLD,
@@ -57,6 +59,7 @@ def main() -> None:
     config = neat.Config(
         neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, "config-orbitrl"
     )
+    cfg: NeatConfig = cast(NeatConfig, config)
 
     setup_worlds(screen)
 
@@ -96,7 +99,7 @@ def main() -> None:
                 setup_highscores_world(screen)
             elif target_world == RL_WORLD:
                 # rl_lab = RLLab(screen)
-                neat_lab = NEATLab(screen, config, n=200)
+                neat_lab = NEATLab(screen, config, n=cfg.pop_size)
             elif target_world:
                 switch_world(target_world)
 

@@ -72,7 +72,6 @@ class NEATLab:
 
         self.sim = OrbitSim(n, seed=seed, camp_timeout=True)
         self.obs = self.sim.reset()
-        self.nn_inputs = [flatten(self.obs[i], 5) for i in range(n)]
         self.font = pg.font.SysFont(None, 28)
         self._white = pg.Color("white")
 

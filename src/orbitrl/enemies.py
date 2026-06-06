@@ -5,7 +5,7 @@ import esper
 import numpy as np
 import pygame as pg
 
-from orbitrl.core import Circle, Layer1, Layer2, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
+from orbitrl.core import Circle, Layer2, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
 from orbitrl.player import Player
 
 
@@ -75,7 +75,7 @@ class CollisionProcessor(esper.Processor):
 
 def spawn_enemy(rng=None):
     source = rng if rng is not None else np.random
-    enemy_type = source.choice([1, 2, 3], p=[0.25, 0.50, 0.25])
+    enemy_type = source.choice([1, 2, 3], p=[0.1, 0.70, 0.2])
     # enemy_type = 2  # for now just spawn standard orange enemies.
     if enemy_type == 1:
         enemy_color_name = "red"
@@ -109,12 +109,12 @@ class EnemySpawnProcessor(esper.Processor):
         super().__init__()
         self.rng = rng
         self.spawn_timer = 0.0
-        self.spawn_interval = 2.0
+        self.spawn_interval = 3.0
         self.num_spawns = 0
 
     def reset(self):
         self.spawn_timer = 0.0
-        self.spawn_interval = 2.0
+        self.spawn_interval = 3.0
         self.num_spawns = 0
 
     def process(self, dt):
@@ -126,8 +126,8 @@ class EnemySpawnProcessor(esper.Processor):
             self.spawn_timer = 0.0
             spawn_enemy(self.rng)
             self.num_spawns += 1
-            if self.num_spawns % 5 == 0:
-                self.spawn_interval = max(0.1, self.spawn_interval - 0.5)
+            if self.num_spawns % 4 == 0:
+                self.spawn_interval = max(0.2, self.spawn_interval - 0.5)
 
 
 class EnemyDespawnProcessor(esper.Processor):
