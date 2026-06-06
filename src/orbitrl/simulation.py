@@ -4,6 +4,7 @@ import pygame as pg
 from orbitrl.core import (
     Circle,
     Layer2,
+    Layer3,
     MovementProcessor,
     PolarPosition,
     PolarToCartesianProcessor,
@@ -25,7 +26,7 @@ def spawn_black_hole() -> None:
     esper.add_component(black_hole, Position())
     esper.add_component(black_hole, Circle(radius=50.0, color=pg.Color("black")))
     esper.add_component(black_hole, Enemy())
-    esper.add_component(black_hole, Layer2())
+    esper.add_component(black_hole, Layer3())
 
 
 def setup_simulation_processors(rng=None) -> None:

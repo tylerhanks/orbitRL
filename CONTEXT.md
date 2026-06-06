@@ -50,9 +50,24 @@ fitness).
 
 A caller that learns: it drives an Environment by choosing Actions from its
 policies, reads Rewards and Observations, and reads cumulative scores as fitness
-at Episode end. Runs without rendering.
+at Episode end. The learning algorithm is open-ended (NEAT today; others later).
+A Trainer runs in one of two **modes**.
+
+## Headless mode / Demo mode
+
+The two modes a Trainer can run in. In **headless mode** nothing is drawn — the
+Environment is stepped as fast as possible, for training speed. In **demo mode**
+the Environment is rendered each tick so a human can watch the Trainer learn
+(the NEAT Trainer in demo mode is what renders evolving agents on screen).
 
 ## RL Lab
 
-The on-screen demo: a pygame adapter that renders an Environment driven by
-default (untrained) policies, resetting each Episode so a human can watch.
+The degenerate demo: a pygame adapter that renders an Environment driven by
+random, untrained policies (no learning). A visual control / baseline, distinct
+from a Trainer running in demo mode.
+
+## Species
+
+A NEAT grouping of compatible genomes within a generation. Each Agent belongs to
+the species of the genome that controls it; in demo mode, Agents are color-coded
+by species so a human can see lineages form, survive, and go extinct.

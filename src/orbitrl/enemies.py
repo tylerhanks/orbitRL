@@ -5,7 +5,7 @@ import esper
 import numpy as np
 import pygame as pg
 
-from orbitrl.core import Circle, Layer1, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
+from orbitrl.core import Circle, Layer2, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
 from orbitrl.player import Player
 
 
@@ -13,17 +13,21 @@ from orbitrl.player import Player
 class Enemy:
     alive: bool = True
 
+
 @component
 class EnemyType:
     color: str
+
 
 @component
 class NearMissAwarded:
     awarded: set[int] = field(default_factory=set)
 
+
 _COLOR_RED = pg.Color("red")
 _COLOR_ORANGE = pg.Color("orange")
 _COLOR_YELLOW = pg.Color("yellow")
+
 
 class CollisionProcessor(esper.Processor):
     def process(self, dt):
@@ -68,46 +72,49 @@ class CollisionProcessor(esper.Processor):
                     else:
                         awarded.awarded.add(ent1)
 
+
 def spawn_enemy(rng=None):
     source = rng if rng is not None else np.random
-    enemy_type = source.choice([1, 2, 3])
+    enemy_type = source.choice([1, 2, 3], p=[0.1, 0.70, 0.2])
+    # enemy_type = 2  # for now just spawn standard orange enemies.
     if enemy_type == 1:
         enemy_color_name = "red"
         enemy_color = _COLOR_RED
         enemy_radius = 30.0
-        enemy_speed = -40.0
+        enemy_speed = -50.0
     elif enemy_type == 2:
         enemy_color_name = "orange"
         enemy_color = _COLOR_ORANGE
         enemy_radius = 20.0
-        enemy_speed = -70.0
+        enemy_speed = -80.0
     else:
         enemy_color_name = "yellow"
         enemy_color = _COLOR_YELLOW
         enemy_radius = 10.0
-        enemy_speed = -150.0
+        enemy_speed = -160.0
 
     esper.create_entity(
         PolarPosition(r=400.0, theta=source.uniform(0, 2 * np.pi)),
         Position(),
         Enemy(),
-        Layer1(),
+        Layer2(),
         Circle(radius=enemy_radius, color=enemy_color),
         PolarVelocity(r_dot=enemy_speed, theta_dot=0.0),
         EnemyType(color=enemy_color_name),
     )
+
 
 class EnemySpawnProcessor(esper.Processor):
     def __init__(self, rng=None):
         super().__init__()
         self.rng = rng
         self.spawn_timer = 0.0
-        self.spawn_interval = 4.0
+        self.spawn_interval = 3.0
         self.num_spawns = 0
 
     def reset(self):
         self.spawn_timer = 0.0
-        self.spawn_interval = 4.0
+        self.spawn_interval = 3.0
         self.num_spawns = 0
 
     def process(self, dt):
@@ -119,8 +126,9 @@ class EnemySpawnProcessor(esper.Processor):
             self.spawn_timer = 0.0
             spawn_enemy(self.rng)
             self.num_spawns += 1
-            if self.num_spawns % 10 == 0:
-                self.spawn_interval = max(0.5, self.spawn_interval - 0.5)
+            if self.num_spawns % 4 == 0:
+                self.spawn_interval = max(0.2, self.spawn_interval - 0.5)
+
 
 class EnemyDespawnProcessor(esper.Processor):
     def process(self, dt):
@@ -130,6 +138,7 @@ class EnemyDespawnProcessor(esper.Processor):
         for _ent, (enemy, polar_pos) in esper.get_components(Enemy, PolarPosition):
             if polar_pos.r < 0.0:
                 enemy.alive = False
+
 
 class DeadEnemyProcessor(esper.Processor):
     def process(self, dt):

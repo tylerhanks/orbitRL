@@ -1,3 +1,4 @@
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -36,6 +37,14 @@ AGENT_PALETTE: list[pg.Color] = [
 # Control semantics, mirroring InputProcessor: hold = push outward, release = fall inward.
 HOLD_R_DOT = 200.0
 RELEASE_R_DOT = -100.0
+
+# Anti-camping timeout (opt-in via OrbitSim(camp_timeout=True)). The action space is binary
+# (hold/release), so a "stationary" agent is really bang-bang oscillating in a tight radial
+# band -- we detect it as a small max-min spread of r over a sliding window. A real dodger
+# sweeps across zones and never trips this. Tune these after watching a few generations.
+CAMP_WINDOW_TICKS = 300  # ~5 s at dt = 1/60
+CAMP_BAND = 20.0  # max-min of r (units) below this over a full window = camping
+CAMP_PENALTY = 50  # score subtracted at camping-death
 
 
 @dataclass
@@ -80,12 +89,15 @@ class OrbitSim:
         dt: float = 1.0 / 60.0,
         seed: int | None = None,
         world: str = RL_WORLD,
+        camp_timeout: bool = False,
     ) -> None:
         self.n = n_agents
         self.dt = dt
         self.world = world
+        self.camp_timeout = camp_timeout
         self.rng = np.random.default_rng(seed)
         self._agents: list[int] = []
+        self._camp_windows: list[deque[float]] = []
         self._prev_scores: list[int] = [0] * n_agents
         self._renderer: RenderProcessor | None = None
         self._build()
@@ -125,6 +137,7 @@ class OrbitSim:
                 ScoreTracker(),
             )
             self._agents.append(ent)
+        self._camp_windows = [deque(maxlen=CAMP_WINDOW_TICKS) for _ in self._agents]
         self._prev_scores = [0] * self.n
 
     def reset(self, seed: int | None = None) -> list[Observation | None]:
@@ -132,6 +145,12 @@ class OrbitSim:
 
         if seed is not None:
             self.rng = np.random.default_rng(seed)
+
+        # Flush any enemies DeadEnemyProcessor marked for *deferred* deletion on the final
+        # tick of the episode. Without this, our immediate deletes below would drop those
+        # entities from _entities while leaving them in esper's _dead_entities set, so the
+        # next esper.process() -> clear_dead_entities() would KeyError on the orphan.
+        esper.clear_dead_entities()
 
         # Delete enemies (Enemy + PolarVelocity) and the current agents; the black hole
         # has no PolarVelocity so it survives, as do the registered processors.
@@ -150,13 +169,13 @@ class OrbitSim:
 
     # -- stepping ----------------------------------------------------------
 
-    def step(
-        self, actions: list[bool]
-    ) -> tuple[list[Observation | None], list[float], list[bool], bool]:
+    def step(self, actions: list[bool]) -> tuple[list[Observation | None], list[float], list[bool], bool]:
         self._enter()
 
         self._apply(actions)
         esper.process(self.dt)
+        if self.camp_timeout:
+            self._check_camping()
 
         obs = self._observe()
         scores = self._scores()
@@ -173,6 +192,21 @@ class OrbitSim:
                 continue
             polar_vel = esper.component_for_entity(ent, PolarVelocity)
             polar_vel.r_dot = HOLD_R_DOT if action else RELEASE_R_DOT
+
+    def _check_camping(self) -> None:
+        # Kill any living agent whose radius has stayed inside CAMP_BAND for a full window,
+        # mirroring collision/ring death (alive=False, velocity zeroed) plus a score penalty.
+        for ent, window in zip(self._agents, self._camp_windows, strict=True):
+            player = esper.component_for_entity(ent, Player)
+            if not player.alive:
+                continue
+            window.append(esper.component_for_entity(ent, PolarPosition).r)
+            if len(window) == window.maxlen and (max(window) - min(window)) < CAMP_BAND:
+                player.alive = False
+                pv = esper.component_for_entity(ent, PolarVelocity)
+                pv.r_dot = 0.0
+                pv.theta_dot = 0.0
+                esper.component_for_entity(ent, Score).value -= CAMP_PENALTY
 
     # -- observation -------------------------------------------------------
 
@@ -222,6 +256,13 @@ class OrbitSim:
         self._enter()
         return sum(1 for ent in self._agents if esper.component_for_entity(ent, Player).alive)
 
+    def set_agent_color(self, i: int, color: pg.Color) -> None:
+        """Recolor agent i. Generic presentation hook: the Environment carries no notion of
+        why an agent has a given color (species, team, ...) -- that is a caller concern.
+        """
+        self._enter()
+        esper.component_for_entity(self._agents[i], Circle).color = color
+
     def render(self, surface: pg.Surface) -> None:
         self._enter()
         if self._renderer is None:
@@ -239,15 +280,25 @@ def flatten(obs: Observation | None, k: int) -> np.ndarray:
     if obs is None:
         return np.zeros(width, dtype=np.float32)
 
-    own = np.array(
-        [obs.r, obs.theta, obs.r_dot, float(obs.zone), float(obs.alive)], dtype=np.float32
-    )
+    own = np.array([obs.r, obs.theta, obs.r_dot, float(obs.zone), float(obs.alive)], dtype=np.float32)
 
     def distance(e: EnemyObs) -> float:
-        return float(abs(e.r - obs.r) + abs(e.theta - obs.theta))
+        # dr = abs(e.r - obs.r)
+        # How far the player must travel before its theta reaches the enemy's theta.
+        # theta_dot is always negative, so the player moves toward decreasing theta.
+        # ahead ∈ [0, 2π): near-zero = just ahead, near-2π = just behind.
+        ahead = (obs.theta - e.theta) % (2.0 * np.pi)
+        # Enemies behind (ahead > π) are penalized with a +2π offset so any forward
+        # enemy is always ranked closer than any behind enemy in the angular component.
+        angular_dist = ahead if ahead <= np.pi else ahead + 2.0 * np.pi
+        # return float(dr + angular_dist)
+        return angular_dist
 
     nearest = sorted(obs.enemies, key=distance)[:k]
     enemy_feats = np.zeros(4 * k, dtype=np.float32)
     for i, e in enumerate(nearest):
-        enemy_feats[4 * i : 4 * i + 4] = (e.r, e.theta, e.radius, e.speed)
+        ahead = (obs.theta - e.theta) % (2.0 * np.pi)
+        angular_dist = ahead if ahead <= np.pi else ahead + 2.0 * np.pi
+        dr = abs(e.r - obs.r)
+        enemy_feats[4 * i : 4 * i + 4] = (angular_dist, dr, e.radius, e.speed)
     return np.concatenate([own, enemy_feats])
