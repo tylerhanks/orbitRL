@@ -96,7 +96,7 @@ def main() -> None:
                 setup_highscores_world(screen)
             elif target_world == RL_WORLD:
                 # rl_lab = RLLab(screen)
-                neat_lab = NEATLab(screen, config, n=100)
+                neat_lab = NEATLab(screen, config, n=200)
             elif target_world:
                 switch_world(target_world)
 

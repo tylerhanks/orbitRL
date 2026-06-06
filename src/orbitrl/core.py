@@ -13,39 +13,53 @@ class Position:
     x: float = CENTER_X
     y: float = CENTER_Y
 
+
 @component
 class PolarPosition:
     r: float = 0.0
     theta: float = 0.0
+
 
 @component
 class PolarVelocity:
     r_dot: float = 0.0
     theta_dot: float = 0.0
 
+
 @component
 class Circle:
     radius: float = 10.0
     color: pg.Color = field(default_factory=lambda: pg.Color("black"))
 
+
 @component
 class Layer1:
     pass
+
 
 @component
 class Layer2:
     pass
 
+
+@component
+class Layer3:
+    pass
+
+
 @component
 class Score:
     value: int = 0
+
 
 @component
 class GameplayPaused:
     pass
 
+
 def gameplay_paused() -> bool:
     return bool(esper.get_component(GameplayPaused))
+
 
 class MovementProcessor(esper.Processor):
     def process(self, dt):
@@ -57,6 +71,7 @@ class MovementProcessor(esper.Processor):
             polar_pos.theta += polar_vel.theta_dot * dt
             polar_pos.theta = polar_pos.theta % (2 * np.pi)  # wrap theta to [0, 2pi]
 
+
 class PolarToCartesianProcessor(esper.Processor):
     def process(self, dt):
         if gameplay_paused():
@@ -65,6 +80,7 @@ class PolarToCartesianProcessor(esper.Processor):
         for _ent, (polar, pos) in esper.get_components(PolarPosition, Position):
             pos.x = polar.r * np.cos(polar.theta) + CENTER_X
             pos.y = polar.r * np.sin(polar.theta) + CENTER_Y
+
 
 class RenderProcessor(esper.Processor):
     def __init__(self, screen: pg.Surface, show_score: bool = True):
@@ -89,6 +105,8 @@ class RenderProcessor(esper.Processor):
         for _ent, (_layer1, pos, circle) in esper.get_components(Layer1, Position, Circle):
             pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
         for _ent, (_layer2, pos, circle) in esper.get_components(Layer2, Position, Circle):
+            pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
+        for _ent, (_layer3, pos, circle) in esper.get_components(Layer3, Position, Circle):
             pg.draw.circle(self.screen, circle.color, (int(pos.x), int(pos.y)), int(circle.radius))
         self.screen.unlock()
 

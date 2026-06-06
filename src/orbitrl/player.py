@@ -4,7 +4,7 @@ import esper
 import pygame as pg
 
 from orbitrl.config import INNER_RING_RADIUS, MIDDLE_RING_RADIUS, OUTER_RING_RADIUS
-from orbitrl.core import Circle, Layer2, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
+from orbitrl.core import Circle, Layer1, Layer2, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
 
 
 @component
@@ -12,18 +12,20 @@ class Player:
     alive: bool = True
     zone: int = 0
 
+
 @component
 class ScoreTracker:
     progress: float = 0.0
 
+
 def spawn_player():
     player = esper.create_entity()
-    esper.add_component(player, PolarPosition(r = 200.0, theta = 0.0))
-    esper.add_component(player, PolarVelocity(r_dot = 0.0, theta_dot = -2.5))
+    esper.add_component(player, PolarPosition(r=200.0, theta=0.0))
+    esper.add_component(player, PolarVelocity(r_dot=0.0, theta_dot=-2.5))
     esper.add_component(player, Position())
     esper.add_component(player, Circle(radius=12.0, color=pg.Color("white")))
     esper.add_component(player, Player())
-    esper.add_component(player, Layer2())
+    esper.add_component(player, Layer1())
     esper.add_component(player, Score())
     esper.add_component(player, ScoreTracker())
 
@@ -49,6 +51,7 @@ class PlayerZoneProcessor(esper.Processor):
                 player.alive = False
                 polar_vel.r_dot = 0.0
                 polar_vel.theta_dot = 0.0
+
 
 class InputProcessor(esper.Processor):
     def process(self, dt):

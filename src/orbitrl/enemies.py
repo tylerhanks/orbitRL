@@ -5,7 +5,7 @@ import esper
 import numpy as np
 import pygame as pg
 
-from orbitrl.core import Circle, Layer1, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
+from orbitrl.core import Circle, Layer1, Layer2, PolarPosition, PolarVelocity, Position, Score, gameplay_paused
 from orbitrl.player import Player
 
 
@@ -97,7 +97,7 @@ def spawn_enemy(rng=None):
         PolarPosition(r=400.0, theta=source.uniform(0, 2 * np.pi)),
         Position(),
         Enemy(),
-        Layer1(),
+        Layer2(),
         Circle(radius=enemy_radius, color=enemy_color),
         PolarVelocity(r_dot=enemy_speed, theta_dot=0.0),
         EnemyType(color=enemy_color_name),
