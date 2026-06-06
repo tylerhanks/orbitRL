@@ -62,6 +62,29 @@ def test_reset_restores_full_generation():
     assert all(o is not None for o in obs)
 
 
+def test_reset_flushes_deferred_dead_enemies():
+    """Regression: an enemy DeadEnemyProcessor marked for *deferred* deletion on the final
+    tick of an episode must not survive reset() in esper's _dead_entities set. Before the
+    fix, reset()'s immediate delete orphaned it there and the next process() raised
+    KeyError inside clear_dead_entities()."""
+    from orbitrl.enemies import Enemy, EnemyType
+
+    sim = OrbitSim(N, seed=11, world="deferred")
+    sim.reset()
+    for _ in range(200):  # spawn interval is 2 s (~120 ticks); step until an enemy exists
+        sim.step([True] * N)
+        sim._enter()
+        enemies = [ent for ent, (_e, _t) in esper.get_components(Enemy, EnemyType)]
+        if enemies:
+            break
+    assert enemies, "expected a spawned enemy to defer-delete"
+    esper.delete_entity(enemies[0])  # deferred -- simulates DeadEnemyProcessor on the last tick
+
+    sim.reset()  # must flush the deferred id, not orphan it
+    # Would KeyError in clear_dead_entities() at the top of process() without the fix.
+    sim.step([False] * N)
+
+
 def test_dead_agents_are_masked_and_earn_no_reward():
     sim = OrbitSim(N, seed=3, world="mask")
     sim.reset()

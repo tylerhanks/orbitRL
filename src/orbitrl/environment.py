@@ -146,6 +146,12 @@ class OrbitSim:
         if seed is not None:
             self.rng = np.random.default_rng(seed)
 
+        # Flush any enemies DeadEnemyProcessor marked for *deferred* deletion on the final
+        # tick of the episode. Without this, our immediate deletes below would drop those
+        # entities from _entities while leaving them in esper's _dead_entities set, so the
+        # next esper.process() -> clear_dead_entities() would KeyError on the orphan.
+        esper.clear_dead_entities()
+
         # Delete enemies (Enemy + PolarVelocity) and the current agents; the black hole
         # has no PolarVelocity so it survives, as do the registered processors.
         for ent, (_enemy, _vel) in list(esper.get_components(Enemy, PolarVelocity)):
